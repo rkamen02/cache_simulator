@@ -1,0 +1,68 @@
+
+README
+by Samuel Weaver (sweave05) and Ross Kamen (rkamen02)
+October 08, 2016
+HW 3
+
+Piazza and the professor's lectures were our only form of help from other
+people on this project. We were surprisingly independent while working on 
+this project.
+
+Everything layed out in the specifications has been implemented in a way that
+conforms to all standards set out by the specifications and professor. We 
+went above and beyond and also implemented -rotate 270, -flip vertical, 
+-flip horizontal, and -transpose. Our program supports multiple
+transformations on one command line.
+
+Architecture:
+
+	- General strategy: create a Pnm_ppm struct of the same size as the 
+	original image without any of the pixels initialized. Then send the 
+	original image's pixel array into the mapping function with the blank 
+	Pnm_ppm, calling the apply function for every pixel. Each pixel's 
+	original location will be transformed to a new location (based on the 
+	apply function algorithm) and placed into the blank Pnm_ppm's pixel 
+	array at that new location. The previously blank Pnm_ppm will be the 
+	transformed image. This process is repeated in a loop for every 
+	command line argument.
+
+	- Major components and interactions:
+
+		- int validate_args_initialize( int argc, 
+			      char *argv[], 
+			      A2Methods_mapfun **map, 
+			      char **time_file_name,
+			      A2Methods_T *methods);
+
+		--> loops through argv and checks each command line argument
+			for validity
+		--> calls SET_METHODS to set the map type
+	
+		- Pnm_ppm make_edits( int argc,
+		    	char *argv[], 
+		    	Pnm_ppm image, 
+		    	A2Methods_mapfun *map, 
+		    	FILE *log_file);
+
+		--> loops through argv and calls make_edit for each command
+		--> returns a completely transformed version of the image arg
+		
+		- void make_edit( Pnm_ppm *image, 
+			A2Methods_mapfun *map, 
+			FILE *log_file, 
+			int rotation,
+			A2Methods_applyfun edit_function,
+			char *func_name);
+
+		--> calls empty_copy to create an uninitialized Pnm_ppm struct
+			of the same size as the *image argument
+		--> calls the desired map function with the pixels from the 
+			*image argument and the new blank copy. The map 
+			function populates the blank copy with transformed 
+			pixels from the image argument.
+		--> frees *image and points image at the newly populated copy.
+
+
+
+Refer to RESULTS.pdf for our timing results. 
+

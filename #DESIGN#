@@ -1,0 +1,363 @@
+
+DESIGN Document
+by Samuel Weaver (sweave05) and Ross Kamen (rkamen02)
+October 4, 2016
+HW 3
+
+For Part A:
+
+1.
+        We are trying to represent a blocked two dimensional homogenous array of
+        any object; it is blocked for cacheing optimization purposes. 
+
+2. 
+        Throw a CRE if a NULL UArray2b_T is passed to any of these functions.
+
+        UArray2b_T  UArray2b_new (int width, 
+                                        int height, 
+                                        int size, 
+                                        int blocksize);
+                Create a new UArray2b_T of width width, height height, and 
+                element size size with blocks of blocksize * blocksize elements 
+                per block. It is a CRE to be given non-natural number inputs. 
+                CRE if blocksize > 1 if size > 64 kB.           
+        
+        UArray2b_T UArray2b_new_64K_block(int width, int height, int size);
+                Create a new UArray2b_T of width width, height height, and 
+                element size size with one element per block. It is a CRE to be 
+                given non-natural number inputs.
+
+        void  UArray2b_free     (T *array2b);
+                Free the UArray2b_T (and all of its data) pointed to by the 
+                given pointer. CRE if array2b or *array2b is NULL. Sets
+                *array2b to NULL.
+
+        int   UArray2b_width    (T  array2b);
+                Returns the width of array2b.
+
+        int   UArray2b_height   (T  array2b);
+                Returns the height of array2b.
+
+        int   UArray2b_size     (T  array2b);
+                Returns the element size of the elements in array2b.
+
+        int   UArray2b_blocksize(T  array2b);
+                Returns the blocksize of array2b.
+
+        void *UArray2b_at(T array2b, int column, int row);
+                Returns a pointer to the element in array2b in the given
+                column of the given row. CRE if column or row is out of bounds.
+                (0 <= row < height) (0 <= column < width).
+
+        void  UArray2b_map(T array2b, 
+                          void apply(int col, int row, T array2b,
+                                     void *elem, void *cl), 
+                          void *cl);
+                Applies apply to every element in array2b. Apon iteration
+                gives apply the column of the given element, the row of the
+                given element, the array2b itself, a pointer to the given 
+                element, and the given void *cl.
+
+3.
+                /*Construct a 10x10 blocked 2D array of integers with 25 
+                 * ints per block
+                */
+        array2b = UArray2b_new( 10, 10, sizeof( int), 5);
+                /*set the top left corner to 1*/
+        *((int *)UArray2b_at( array2b, 0, 0)) = 1;
+        int x;
+        x = UArray2b_width( array2b);   /*x becomes 10*/
+        x = UArray2b_height( array2b);  /*x becomes 10*/
+        x = UArray2b_size( array2b);    /*x becomes sizeof(int)*/
+        x = UArray2b_blocksize( array2b);       /*x becomes 5*/
+        x = *((int *)UArray2b_at( array2b, 0, 0));      /*x becomes 1*/
+        UArray2b_free( &array2b);       /*free the UArray2b_T*/
+
+4.
+        We will represent UArray2b_T with UArra2_T of UArray2_Ts.  The higher
+        level UArray2_T will represent the 2D array of blocks and the lower
+        level UArray2_Ts will represent the 2D arrray of cells in each block.
+        Ivariants:
+                - Each block is a square of width and height of 
+                  blocksize * blocksize * size bytes
+                - Each block is the same size
+                - The origin of our indexing is the top left corner with 
+                  positive axis extending down and right
+                - Blocks will fill by row starting from (0,0) 
+                        (Therefore if (blocksize mod width != 0) or 
+                        (blocksize mod height != 0) there will be wasted space
+                         in some edge blocks)
+                - UArray2b_map does mapping by block.
+                - Cell (i,j) is stored at coordinate 
+                  (i % blocksize, j % blocksize) within the block at coordinate
+                  (floor( i/ blocksize), floor( j/ blocksize)).
+                - each cell is the same size
+
+5.
+        A lower level UArray2b_T represents a block of memory that can be
+                loaded into the cache all at once. 
+        Elements in the lower level UArray2b_Ts (elements in blocks) represent 
+                the objects being stored.
+        
+6.
+        - sending NULL UArray2b_Ts to the functions
+        - accessing elements that are out of bounds
+        - making sure the coordinates given to the apply function in the map    
+                function are correct
+        - making sure the pointer to the given element in the apply function
+                is in fact, the right pointer
+        - making sure our mapping function does not access unused memory
+
+7.
+        - the idiom for allocating and intializing pointers to structures
+        - the idiom for creating an abstract type using incomplete structures 
+        - the idiom for using void pointers to allow to the user to 
+                store whatever they want
+
+For Part C:
+
+1.
+        We are trying to make certain given edits to a jpeg image using a
+        specified mapping method. If requested, the program will log 
+        the amount of time it took to do the mapping in order to compare
+        cache efficiency.
+
+2. 
+        a) ./ppmtrans -rotate 90 image.jpg
+        b) ./ppmtrans -flip horizontal image.jpg
+        c) ./ppmtrans -time time_log.txt -rotate 90 -row-major image.jpg
+        
+3. 
+        a) a jpeg image rotated 90 degrees right in binary ppm format using a 
+                default map method. no time log.
+        b) a jpeg image flipped around the vertical axis of symmetry in
+                binary ppm format using a default map method. no time log.
+        c) a jpeg image rotated 90 degrees right in binary ppm format using 
+                row-major mapping with a log of how long tasks took. the log is 
+                written to time_log.txt.
+
+4. 
+        a) validating arguments, figuring out how to find the image file (stdin 
+                or command line), figuring out what mappening algorithm to be 
+                used for image edits, figuring out the file name for the log 
+                file if there should be, copy image file into Pnm_ppm object
+        b) if called for, open the time log
+        c) if called for, close the time log
+        d) create a Pnm_ppm that is a copy of the original Pnm_ppm (by calling 
+                g) and apply specified edits to it (by calling options h-m)
+        e) write a log entry to the time log
+
+        f) insert a given pixel into a given Pnm_ppm at a given coordinate
+        g) create a copy of a Pnm_ppm that has an unpopulated 
+                A2Methods_UArray2 and may or may not be rotated 90 degrees
+        h) have a given pixel put into the right spot for a 90 degree rotation
+        i) have a given pixel put into the right spot for a 180 degree rotation
+        j) have a given pixel put into the right spot for a 270 degree rotation
+        k) have a given pixel put into the right spot for a horizontal flip
+        l) have a given pixel put into the right spot for a vertical flip
+        m) have a given pixel put into the right spot for an image transpose
+
+5. 
+        a) argc, argv, a pointer to the pointer to the mapping function to be
+                used for image editing, a pointer to the time log file name,
+                pointer to the image file
+        b) the file name of the time log
+        c) a pointer to the time log file
+        d) a pointer to a Pnm_ppm, pointer to a mapping function
+        e) the name of the function to be logged, how long it took, a pointer
+                to the time log file
+
+        f) the coordinates to put it at, the pixel, image to receive insertion
+        g) a pointer to the original image, whether or not the copy should 
+                be rotated (landscape to portrait or vice versa)
+        h) the coordinates of the original pixel, the image the pixel comes 
+                from, the image the pixel is to be put in
+        i) the coordinates of the original pixel, the image the pixel comes 
+                from, the image the pixel is to be put in
+        j) the coordinates of the original pixel, the image the pixel comes 
+                from, the image the pixel is to be put in
+        k) the coordinates of the original pixel, the image the pixel comes 
+                from, the image the pixel is to be put in
+        l) the coordinates of the original pixel, the image the pixel comes 
+                from, the image the pixel is to be put in
+        m) the coordinates of the original pixel, the image the pixel comes 
+                from, the image the pixel is to be put in
+
+6.
+        - The Pnm_ppms contain a suite of functions used to access their data
+                and make edits to them
+        - The CPUTime_T has code that times the CPU
+        - The function used to map the Pnm_ppm's arrays uses row-major mapping,
+                column-major mapping, block-major mapping, or another algortihm
+                to reach every element
+
+7.
+        - Pnm_ppm: represents an image using the a2methods interface
+        - CPUTime_T: times the CPU
+
+8.
+        - We will not be creating any new abstractions
+
+9.
+        - Pnm_ppm's will represent images
+        - mapping type doesn't change the output of the program, only the time
+                 it takes to complete the edits
+        - transpose, rotate 90, and rotate 270 will all produce images with 
+                inverted width/heights. flips, rotate 0, and rotate 180 will 
+                produce images with the same dimensions as the input file.
+        - default mapping will match the fastest possible mapping strategy
+
+10.
+        h) have a given pixel put into the right spot for a 90 degree rotation
+        - (x,y) -> (w-y-1,x)
+        i) have a given pixel put into the right spot for a 180 degree rotation
+        - (x,y) -> (h-x-1,w-y-1)
+        j) have a given pixel put into the right spot for a 270 degree rotation
+        - rotate 90 then rotate 180
+        k) have a given pixel put into the right spot for a horizontal flip
+        - flip all columns over the vertical midline. (x,y) -> (w-x-1,y)
+        l) have a given pixel put into the right spot for a vertical flip
+        - flip all rows over the horizontal midnline. (x,y) -> (x,h-y-1)
+        m) have a given pixel put into the right spot for an image transpose
+        - (x,y) -> (y,x)
+
+11. 
+        ADTs:
+        
+        - Pnm_ppm: see pnm.h
+        - CPUTime_T: see cputiming.h
+        - A2Methods_T: see a2methods.h
+        
+        Functions:
+        
+        int validate_args_intialize( int argc, 
+                                        char *argv[], 
+                                        A2Methods_mapfun **map;
+                                        char **time_file_name);
+                - CRE if program arguments are invalid or not recognized
+                - sets time_file_name to the given time log file name
+                        if supplied, NULL if not
+                - sets the mapping function to be used in image transforming
+                        to what is specified, if specified
+                - returns 1 if the filename to read the image from was supplied,
+                        0 if not
+        FILE *open_log( char *file_name);
+                - opens the file of name file_name to append the time logs too
+                - creates the file if not already created
+                - throws a CRE if it could not be created or opened
+                - prints the current time to the file
+                - returns the file pointer
+        void close_log( FILE *log_file);
+                - CRE if log_file is NULL
+                - prints the current time to the file then closes it
+        Pnm_ppm *make_edits( int argc,
+                                char *argv[],
+                                Pnm_ppm *orig_image,
+                                A2Methods_mapfun *map,
+                                FILE *log_file);
+                - CRE if given NULL arguments
+                - assumes arguments have been validated
+                - iterates through argv when a command is encountered
+                        - create an empty copy of orig_image that has the
+                                dimensions that orig_image would have if the
+                                command was applied to it
+                        - apply the command to the copy using the supplied
+                                mapping algorithm
+                        - replace the original image with the copy
+                        - if required, log the time the command took
+        void log_time( char *func_name, double time_used, FILE *file_name);
+                - CRE if given NULL arguments
+                - writes a log in the given file of the given data
+        void insert_pixel( int x, int y, A2Methods_Object *ptr, Pnm_ppm *image);
+                - CRE if (x,y) is out of the bounds of image
+                - CRE if sizeof( *ptr) =/= sizeof( *image)
+                - inserts ptr at (x,y) in image
+                - does not free any memory
+        Pnm_ppm empty_copy( Pnm_ppm *image, int rotated);
+                - CRE if image is NULL
+                - CRE if rotated is not 1 or 0
+                - creates a copy of image with an empy 2D array
+                - the copy is rotated 90 degrees if rotated is 1
+
+        Args for A2Methods_applyfun type: (int i, 
+                                                int j, 
+                                                A2 array2, 
+                                                A2Methods_Object *ptr, 
+                                                void *cl)
+        A2Methods_applyfun rotate_90(...);
+                - CRE if given invalid arguments
+                - the closure pointer must point to a blank copy of the given
+                        image that has been rotated 90 degrees
+                - puts the pixel in question in the right spot in the 
+                        closure image for a 90 degree rotation
+        A2Methods_applyfun rotate_180(...);
+                - CRE if given invalid arguments
+                - the closure pointer must point to a blank copy of the given
+                        image
+                - puts the pixel in question in the right spot in the 
+                        closure image for a 180 degree rotation
+        A2Methods_applyfun rotate_270(...);
+                - CRE if given invalid arguments
+                - the closure pointer must point to a blank copy of the given
+                        image that has been rotated 90 degrees
+                - puts the pixel in question in the right spot in the 
+                        closure image for a 270 degree rotation
+        A2Methods_applyfun flip_horiz(...);
+                - CRE if given invalid arguments
+                - the closure pointer must point to a blank copy of the given
+                        image
+                - puts the pixel in question in the right spot in the 
+                        closure image for a horizontal flip
+        A2Methods_applyfun flip_vert(...);
+                - CRE if given invalid arguments
+                - the closure pointer must point to a blank copy of the given
+                        image
+                - puts the pixel in question in the right spot in the 
+                        closure image for a vertical flip
+        A2Methods_applyfun transpose(...);
+                - CRE if given invalid arguments
+                - the closure pointer must point to a blank copy of the given
+                        image that has been rotated 90 degrees
+                - puts the pixel in question in the right spot in the 
+                        closure image for a image transpose
+
+12.
+        in this order main will call:
+                - validate_args_initialize
+                - open_log
+                - make_edits on image created given information found 
+                        in validate_args_intialize
+                - close_log
+        make_edits will:
+                - loop through argv looking for commands to execute
+                - if a command is found
+                        - it will make an apropriate copy of the given iamge
+                        - begin a timer
+                        - call the apropriate defined A2Methods_applyfun
+                                throught the given map function on the
+                                image copy
+                        - end the timer
+                        - replace the original image with the copy
+                        - log the time on the timer
+        the A2Methods_applyfuns will:
+                - figure out where their given pixels need to go
+                - call_insert pixel to put the pixel there
+        insert_pixel will:
+                - use methods in the Pnm_ppm to insert its given pixel
+13.
+        - tiny images (1x1, 2x2, 3x3, 2x3, 3x2, 1x3, 3x1 ...)
+        - gigantic images
+        - arguments in varying orders
+        - invalid arugments
+        - images with an odd number of rows, even number of rows, odd number
+                of columns, even number of columns or any combination of the two
+        - 90 degree roation on a 2x2
+        - passing in an empty file
+        - checking that our expected times match the realized times (at least 
+                in order regarding row-major, col-major, or block mapping)
+14.
+        We will run through the program with our skeptical audience & point out 
+                that all pixel swapping is done with A2Methods_applyfun. Then
+                we will prove to them that our arithmatic for coordinate
+                asssignement was correct. Therefore our program edits images
+                correctly.

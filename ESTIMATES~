@@ -1,0 +1,91 @@
+
+ESTIMATES
+by Samuel Weaver (sweave05) and Ross Kamen (rkamen02)
+October 4, 2016
+HW 3
+
+		row-major access	column-major access	blocked access
+            _________________________________________________________________	
+90-degree  |   3		|		4		|	2    |
+180-degree |___1________________|_______________4_______________|_______2____|
+
+Justifications:
+1's: blocked access ties for first because when it loads a block and switches
+ 	the pixels, it will never have to load the block ever again. row-major 
+	with 180 degree rotation is the same: the cache will load one block, 
+	iterate straight through that block, and never have to see that block 
+	again.
+2: row-major 90-degree rotation is next best because the cache will have to 
+	load two blocks for most pixels (one to read, then another to write). 
+	there is a chance that the original pixel and its destination pixel 
+	will be in the same block, so there are a few cases where the cache 
+	will not have to load a second block.
+3's: column-major access is the worst because UArray2 stores elements in row 
+	order, forcing column-major mapping to jump "width"-many elements on 
+	each iteration. on a large file, this will force the cache to load a 
+	new block each time. writing the file will also requireloading a new 
+	block.
+
+1: "best performance" is defined as the cache only needing to access the 
+	number of blocks necessary to contain the entire array, and no more 
+	than that. 
+	- row-major for 180 is best because iteration occurs on adjacent values 
+	in memory, so after the map iterates through a whole cache block, the 
+	block is no longer needed.
+
+2: blocked access is next best because the entire array is automatically stored 
+	in a set amount of blocks, and the map will visit those blocks in order.
+	this guarantees that each block will only be visited once, which is 
+	ideal. this performs worse than row-major 180 when the unused space in 
+	each blocksums to greater than the space contained in one whole block. 
+	in this situation, row-major would access one less block than 
+	block-major.
+
+3: row-major 90 degree rotation is worse because adjacent pixels' destination 
+	points are possibly not in the same respective blocks.
+
+	in the beginning, to read and write the first pixel from starting 
+	point to destination takes two blocks, which is consistent with the 
+	previous mapping examples. for the second pixel, its starting and
+	destination blocks have already been loaded, which is still consistent 
+	with the previous examples. 
+
+	problems arise when individual rows are longer than blocks: in this 
+	case, adjacent pixels at the ends of rows might not have the same 
+	respective destination blocks. this would force the cache to load a 
+	new block for the destination of each pixel.
+
+4: col-major access is the worst. if an array is stored in element order, then 
+	in order to iterate by column, the program must access non-adjacent 
+	points in memory. if rows are longer than blocks, the program will 
+	access the first pixel in one block, the next pixel in another block, 
+	and so on, while also having to access different blocks in order to 
+	write the pixels to new destinations. directly accessing memory for each 
+	element defeats the purpose of having a cache. this problem appears even 
+	if rows are not the length of whole blocks, albeit far less severely. 
+	the problem is the same whether rotating 90 or 180 degrees.
+
+
+
+
+Rot.type| adds/subs | mults | divs/mods | compares| loads | h/r | stores | h/r |
+________|___________|_______|___________|_________|_______|_____|______________|
+180 row	|	5   |	0   |	0       |	1 |   12  | 7/12|   6    |  1  |
+-------------------------------------------------------------------------------|
+180 col |	5   |	0   |	0       |	1 |   12  | 5/12|   6    |  1  |
+-------------------------------------------------------------------------------|
+180 blk	|	5   |	0   |	0   	|	1 |   12  | 7/12|   6    |  1  |
+-------------------------------------------------------------------------------|
+90 row	|	3   |	0   |	0       | 	1 |   12  | 7/12|   6    |  2/6|
+-------------------------------------------------------------------------------|
+90 col	|	3   |	0   |	0       |	1 |   12  | 5/12|   6    |  2/6|
+-------------------------------------------------------------------------------|
+90 blk  |	3   |	0   |	0       |	1 |   12  | 7/12|   6    |  1  |
+________|___________|_______|___________|_________|_______|_____|________|_____|
+
+
+
+	row-major access	column-major access	blocked access
+	   __________________________________________________________
+90-degree |   2		|		4		|	1    |
+180-degree|___1_________|_______________3_______________|_______1____|

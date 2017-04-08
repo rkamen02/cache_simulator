@@ -1,0 +1,257 @@
+/*
+ * uarray2b.c
+ * by Samuel Weaver (sweave05) and Ross Kamen (rkamen02)
+ * October 7, 2016
+ * HW3
+ *
+ * Implementation for the UArray2b_T functions.
+ *
+ */
+
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "uarray2b.h"
+#include "uarray2.h"
+
+
+
+/* 			STRUCTURE DEFINITION 			*/
+
+struct UArray2b_T {
+	int blocksize;
+	int size;
+	int width;
+	int height;
+	int blocks_wide;
+	int blocks_high;
+	UArray2_T *array;
+};
+
+/*
+ * new
+ *	purp: creates a new UArray2b_T
+ *	args: int width of all cells, int height of all cells, int amount of
+ *		 cells in one column of a block
+ *	rets: UArray2b_T
+ */
+UArray2b_T UArray2b_new (int width, int height, int size, int blocksize)
+{
+
+	assert( (size > 0) && (width > 0) && (height > 0) && (blocksize > 0));
+	/* assert blocksize is not greater than 64KB */
+	assert( !((blocksize != 1) && (size > (64 * pow( 2, 10)))));
+
+	UArray2b_T UA2b = malloc( sizeof( struct UArray2b_T));
+	assert( UA2b != NULL);
+
+	int blocks_wide  = (int)ceil( ((float)width)  / blocksize);
+	int blocks_high = (int)ceil( ((float)height) / blocksize);
+
+	/* make a dummy cell array so we know how big it will be */
+	UArray2_T UA2_cell   = UArray2_new( blocksize, blocksize, size);
+	UArray2_T UA2_blocks = UArray2_new( blocks_wide,
+					    blocks_high, 
+					    sizeof( UA2_cell));
+	UArray2_free( &UA2_cell);
+
+	/* allocate space for cells in each block */
+	for (int x = 0; x < blocks_wide; x ++) {
+		for (int y = 0; y < blocks_high; y ++) {
+			*((UArray2_T *)UArray2_at( UA2_blocks, x, y)) = 
+				UArray2_new( blocksize, blocksize, size);
+		}
+	}
+
+	UA2b -> blocksize = blocksize;
+	UA2b -> size = size;
+	UA2b -> width = width;
+	UA2b -> height = height;
+	UA2b -> blocks_wide = blocks_wide;
+	UA2b -> blocks_high = blocks_high;
+
+	UA2b -> array = malloc( sizeof( UA2_blocks));
+	*(UA2b -> array) = UA2_blocks;
+
+	return UA2b;
+}
+
+/*
+ * new_64K_block
+ *	purp: creates a UArray2b_T with the largest possible blocksize for the
+ *	 	amount of cells given. if one cell will not fit in a block, the
+ *	 	blocksize will be 1.
+ *	args: int width of all cells, int height of all cells, int size of one
+ * 		cell
+ *	rets: UArray2b_T
+ */
+UArray2b_T UArray2b_new_64K_block ( int width, int height, int size)
+{
+	return UArray2b_new( width, height, size, 1);
+}
+
+/*
+ * free
+ *	purp: deallocates all of the memory for a UArray2b_T
+ *	args: pointer to a UArray2b_T
+ *	rets: none
+ */
+void UArray2b_free ( UArray2b_T *array2b)
+{
+	assert( array2b && *array2b);
+	
+	/* free cells in each block */
+	for (int x = 0; x < (*array2b) -> blocks_wide; x ++) {
+		for (int y = 0; y < (*array2b) -> blocks_high; y ++) {
+			UArray2_free( 
+				UArray2_at( *((*array2b) -> array), x, y));
+		}
+	}
+
+	/* free array of blocks */
+	UArray2_free( (*array2b) -> array);
+
+	/* free pointer to array of blocks */
+	free( (*array2b) -> array);
+
+	/* free UArray2b struct */
+	free( *array2b);
+
+	*array2b = NULL;
+}
+
+/*
+ * width
+ *	purp: returns the width of all the cells in the cache
+ *	args: UArray2b_T
+ *	rets: int
+ */
+int UArray2b_width ( UArray2b_T array2b)
+{
+	return array2b -> width;
+}
+
+/*
+ * height
+ *	purp: returns the height of all the cells in the cache
+ *	args: UArray2b_T
+ *	rets: int
+ */
+int UArray2b_height ( UArray2b_T array2b)
+{
+	return array2b -> height;
+}
+
+/*
+ * size
+ *	purp: returns the size of one cell in bytes
+ *	args: UArray2b_T
+ *	rets: int
+ */
+int UArray2b_size ( UArray2b_T array2b)
+{
+	return array2b -> size;
+}
+
+/*
+ * blocksize
+ *	purp: returns the amount of cells in one column of one block 
+		in the cache
+ *	args: UArray2b_T
+ *	rets: int
+ */
+int UArray2b_blocksize ( UArray2b_T array2b)
+{
+	return array2b -> blocksize;
+}
+
+/*
+ * at
+ *	purp: returns the pointer to a cell in the cache
+ *	args: UArray2b_T, int column, int row
+ *	rets: void pointer to a cell
+ */
+void *UArray2b_at( UArray2b_T array2b, int column, int row)
+{
+	assert( (column >= 0) && (row >= 0));
+	assert( (column < array2b -> width) && (row < array2b -> height));
+
+	int blocksize = array2b -> blocksize;
+
+	UArray2_T *block = UArray2_at( *(array2b -> array), 
+				column/blocksize, 
+				row/blocksize);
+
+
+	return UArray2_at(*block, column % blocksize, row % blocksize);
+}
+
+/*
+ * block_map
+ *	purp: helper to map. maps all cells in a block by column.
+ *	args: UArray2b_T pointer to cache, apply function (int block col, 
+ *		int block row, UArray2b_T cache, void pointer to cell, void 
+ *		pointer closure), int width of block block_x, int height of box
+ *		 block_y, void pointer closure
+ *	rets: none
+ */
+void UArray2b_block_map(UArray2b_T *cache, 
+			void apply(int col, 
+				int row, 
+				UArray2b_T array2b, 
+				void *elem, 
+			       	void *cl), 
+			int block_x, 
+			int block_y, 
+			void *cl)
+{
+
+	int blocksize = (*cache) -> blocksize;
+
+	/* iterate through all cells in the block */
+	/* stop iterating either at end of used memory or end of block */
+	for (int x = blocksize * block_x; 
+		x < (blocksize * (block_x + 1)) && 
+		x < (*cache) -> width;
+	        x++)
+	{
+		for (int y = blocksize * block_y; 
+			y < (blocksize * (block_y + 1)) && 
+			y < (*cache) -> height;
+		        y++)
+		{
+			apply(x, y, *cache, UArray2b_at(*cache, x, y), cl);
+		}
+	}
+}
+
+/*
+ * map
+ *	purp: iterates through all cells in the cache. maps via blocks.
+ *	args: UArray2b_T, apply function (int block col, int block row, 
+ *		UArray2b_T cache, void pointer to cell, void pointer closure), 
+ *		void pointer closure
+ *	rets: none
+ */
+void UArray2b_map( UArray2b_T array2b, 
+                          void apply(int col, 
+			       	int row, 
+				UArray2b_T array2b,
+				void *elem, 
+				void *cl), 
+                          void *cl)
+{
+	assert( array2b != NULL);
+
+	/* 
+	 * iterate by block. at each block, call apply 
+	 * function for each cell 
+	*/
+	for (int x = 0; x < array2b -> blocks_wide; x++){
+		for (int y = 0; y < array2b -> blocks_high; y++){
+			UArray2b_block_map( &array2b, apply, x, y, cl);
+		}
+	}
+			
+}

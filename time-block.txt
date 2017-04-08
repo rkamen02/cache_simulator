@@ -1,0 +1,96 @@
+
+Sat Oct  8 03:55:59 2016
+./tests/betty-white6.pnm
+11520 x 6480
+-block-major
+rotate_90                    1.682187e+10
+rotate_180                   8.452529e+09
+rotate_270                   7.868612e+09
+flip_vert                    7.318258e+09
+flip_horiz                   6.996421e+09
+transpose                    7.089559e+09
+Sat Oct  8 04:02:35 2016
+
+Sat Oct  8 04:09:58 2016
+./tests/desert6.pnm
+4896 x 2748
+-block-major
+rotate_90                    1.243064e+09
+rotate_180                   1.368213e+09
+rotate_270                   1.380884e+09
+flip_vert                    1.305361e+09
+flip_horiz                   1.253323e+09
+transpose                    1.235939e+09
+Sat Oct  8 04:10:09 2016
+
+Sat Oct  8 04:10:31 2016
+./tests/erosion6.pnm
+4896 x 2748
+-block-major
+rotate_90                    1.242699e+09
+rotate_180                   1.328612e+09
+rotate_270                   1.380000e+09
+flip_vert                    1.307595e+09
+flip_horiz                   1.240714e+09
+transpose                    1.236643e+09
+Sat Oct  8 04:10:43 2016
+
+Sat Oct  8 04:11:12 2016
+./tests/flowers6.pnm
+4896 x 2748
+-block-major
+rotate_90                    1.243076e+09
+rotate_180                   1.332633e+09
+rotate_270                   1.363358e+09
+flip_vert                    1.320750e+09
+flip_horiz                   1.241143e+09
+transpose                    1.233702e+09
+Sat Oct  8 04:11:24 2016
+
+Sat Oct  8 04:11:42 2016
+./tests/from-wind-cave6.pnm
+4896 x 2748
+-block-major
+rotate_90                    1.241519e+09
+rotate_180                   1.330900e+09
+rotate_270                   1.360751e+09
+flip_vert                    1.299838e+09
+flip_horiz                   1.235546e+09
+transpose                    1.233204e+09
+Sat Oct  8 04:11:54 2016
+
+Sat Oct  8 04:12:33 2016
+./tests/in-wind-cave6.pnm
+4896 x 2748
+-block-major
+rotate_90                    1.241900e+09
+rotate_180                   1.331680e+09
+rotate_270                   1.359813e+09
+flip_vert                    1.308655e+09
+flip_horiz                   1.239751e+09
+transpose                    1.232232e+09
+Sat Oct  8 04:12:44 2016
+
+Sat Oct  8 04:13:18 2016
+./tests/wind-cave6.pnm
+4896 x 2748
+-block-major
+rotate_90                    1.244636e+09
+rotate_180                   1.334308e+09
+rotate_270                   1.366154e+09
+flip_vert                    1.302005e+09
+flip_horiz                   1.241952e+09
+transpose                    1.233846e+09
+Sat Oct  8 04:13:29 2016
+
+Sat Oct  8 04:14:06 2016
+./tests/mobo.pnm
+8160 x 6120
+-block-major
+rotate_90                    5.828146e+09
+rotate_180                   4.906218e+09
+rotate_270                   5.133639e+09
+flip_vert                    4.829161e+09
+flip_horiz                   4.611149e+09
+transpose                    4.649831e+09
+Sat Oct  8 04:15:11 2016
